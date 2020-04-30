@@ -140,10 +140,13 @@ outputs packages as products. This step is performed automatically,
 and therefore, its link metadata is signed using (1, 1) online keys.
 
 The in-toto root layout itself MUST be signed by administrators using
-(m, n) offline keys, where it is RECOMMENDED n >= 2, and m >=
-ceiling(n / 2). This means that administrators are responsible for
-distributing, revoking, and rotating the developer keys used in the
-first step. Alternatively, administrators MAY use a
+(m, n) offline keys, where it is RECOMMENDED that n >= 2, and m >=
+ceiling(n / 2). Utilizing such a threshold ensures that a majority of
+the administrator keys are required to authorize changes to the supply
+chain. A lower threshold means that fewer keys need to be compromised
+to sign a malicious root layout. The administrators are responsible for
+distributing, revoking, and rotating the developer keys used in the first
+step. Alternatively, administrators MAY use a
 https://github.com/in-toto/docs/blob/master/in-toto-spec.md#214-third-party-sublayouts[sublayout]
 to outsource this responsibility. In that case, the functionary who
 signs the sublayout MUST use the same (m, n) threshold of offline keys.
@@ -242,7 +245,8 @@ makes a terminating delegation of all packages ("`*`") to the
 “package-and-in-toto-metadata-signer'' role. It MUST use a different set
 of (m, n) offline keys from the root role (to ensure that a compromise of
 these keys do not lead to a compromise of the root role as well), where
-it is RECOMMENDED that n >= 2, and m >= ceiling(n / 2). Finally, its
+it is RECOMMENDED that n >= 2, and m >= ceiling(n / 2), again setting a
+requirement of consensus between a majority of the keys. Finally, its
 metadata SHOULD expire in 1 year. See `targets.json` for an example.
 Note in particular how we are using the custom targets metadata to
 associate in-toto root layouts with their respective public keys:
@@ -333,9 +337,11 @@ be trivially copied. Most popular HSMs also come with built-in logging
 capabilities that enables administrators to audit their use.
 
 Finally, the root role MUST use a different set of (m, n) offline keys
-from both the in-toto root layout and the targets role, where n >= 2,
-and m >= ceiling(n / 2). Its metadata SHOULD expire in 1 year. All TUF
-metadata and targets MUST be written using
+from both the in-toto root layout and the targets role, once again
+ensuring separation of roles. It is RECOMMENDED that n >= 2, and
+m >= ceiling(n / 2), where the threshold again enforces a majority vote.
+Its metadata SHOULD expire in 1 year. All TUF metadata and targets MUST be
+written using
 https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots[consistent
 snapshots] (this Boolean property is set in the root metadata). This enables the
 repository to concurrently write new files while package managers are
