@@ -86,7 +86,25 @@ all tests to have passed. Standard in-toto semantics can be used to validate
 that the right functionaries (and the required number of them) issued the
 attestation.
 
-TODO: Update next paragraph to include notions about steps as well.
+TODO: Describe how attestations must be parsed in. Depending on the predicate
+type, in-toto must identify how to handle subjects. Types that express some
+attribute claims typically use the subject as the material for the claims. The
+predicate itself is the outcome of the step producing the attestation. Eg: code
+reviews, test executions, etc. On the other hand, links, provenance, etc. use
+subject to record step outcomes. Users should be able to write policies without
+having to worry about these distinctions. Side note: ITE-9 should include a bit
+that contains this mapping.
+
+FIXME: When a predicate is loaded in, depending on the type, it's processed into
+a representation in terms of its materials and products. Separately, each
+subject is also processed with an attribute approach. The former is used to
+apply materials and outcomes policies for steps. The latter is useful for
+defining inspections that apply against attributes about specific subjects.
+
+TODO: can we redefine steps as ensuring processes happened, used the right
+artifacts, etc, and inspections as a means to assert attributes? Some of the
+purpose of inspections is lost otherwise if the need for external invocations is
+mostly reduced.
 
 This ITE also updates the schema and capabilities for inspections. As it
 stands, the inspections semantic can already be used to apply arbitrary
