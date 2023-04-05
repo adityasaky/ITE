@@ -68,9 +68,27 @@ performed each step and validating the integrity of artifacts as they move from
 one step to the next. Inspections are executed _during_ verification to perform
 any other checks that are defined as external scripts.
 
-TODO: this pass does not revise artifact rules for steps.
+TODO: fix language
 
-This ITE primarily updates the schema and capabilities for inspections. As it
+This ITE proposes updating steps to support different predicate types. In the
+original schema, each step solely expects an in-toto link and is identified
+using a combination of the step name and verification key. In the new model,
+steps are identified using the name, key, _and_ the predicate type. This enables
+writing policies for steps that result in non-link attestations. For example,
+several common supply chain steps such as code reviews and test runs are better
+captured using contextual predicates. Artifact rules may be used to attest that
+the right sources were reviewed or tested but product rules don't quite apply.
+Instead, `expectedProducts` may be replaced by a more powerful
+`expectedOutcomes` field. This new field supports legacy `expectedProducts`
+rules **and** policies that pertain to specific attributes of the step. In the
+above example of a test run, this new field can express a policy that requires
+all tests to have passed. Standard in-toto semantics can be used to validate
+that the right functionaries (and the required number of them) issued the
+attestation.
+
+TODO: Update next paragraph to include notions about steps as well.
+
+This ITE also updates the schema and capabilities for inspections. As it
 stands, the inspections semantic can already be used to apply arbitrary
 constraints to data captured in in-toto links. Similarly, they can apply
 constraints to attestations as well. We update in-toto inspections with more
