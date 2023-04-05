@@ -19,58 +19,56 @@ steps:
       - vcs-review
       - human-review
     expectedMaterials:
-      - MATCH foo/* WITH products FROM checkout # code review should be for the same gitCommit as before
+      - artifact: MATCH foo/* WITH products FROM checkout # code review should be for the same gitCommit as before
     expectedOutcomes:
-      - assert predicate.result == true # this is just to sketch out an idea
+      - policyDSL: assert predicate.result == true # this is just to sketch out an idea
     pubkeys: [alice, bob]
   - name: test
     command: make test
     predicates:
       - test-run
     expectedMaterials:
-      - MATCH foo/* WITH products FROM checkout
+      - artifact: MATCH foo/* WITH products FROM checkout
     expectedOutcomes:
-      - assert len(predicate.testRun.failedTests) == 0 # we're okay with tests with warnings in this case, which is why we're not using predicate.Result
+      - policyDSL: assert len(predicate.testRun.failedTests) == 0 # we're okay with tests with warnings in this case, which is why we're not using predicate.Result
     pubkeys: [builder1, builder2]
   - name: build
     command: make
-    predicates:
-      - slsa-provenance
-    expectedMaterials:
-      - MATCH foo/* WITH products FROM checkout
-    expectedOutcomes:
-      - CREATE bin/foo
-      - assert predicate.invocation.configSource.digest == attestations[checkout].products["Makefile"].digest
+    substeps:
+      - predicates:
+          - slsa-provenance
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout
+        expectedOutcomes:
+          - artifact: CREATE bin/foo
+          - policyDSL: assert predicate.invocation.configSource.digest == attestations[checkout].products["Makefile"].digest
+      - predicates:
+          - runtime-trace
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout
+        expectedOutcomes:
+          - artifact: CREATE bin/foo
+          - policyDSL: assert predicate.monitor.tracePolicy.network == true
+          - policyDSL: assert len(predicate.monitorLog.network) == 0
     pubkeys: [builder1, builder2]
     threshold: 2 # reproducible builds
-  - name: record-runtime-trace
-    predicates:
-      - runtime-trace
-    expectedMaterials:
-      - MATCH foo/* WITH products FROM checkout
-    expectedOutcomes:
-      - CREATE bin/foo
-      - assert predicate.monitor.tracePolicy.network == true
-      - assert len(predicate.monitorLog.network) == 0
-    pubkeys: [builder1, builder2]
-    threshold: 2
   - name: record-attributes
     command: make scai-report
     predicates:
       - scai
     expectedMaterials:
-      - MATCH bin/foo WITH products FROM build
+      - artifact: MATCH bin/foo WITH products FROM build
     expectedOutcomes:
-      - assert predicate.attributes[attribute==WITH_STACK_PROTECTION].conditions.flags == "-fstack-protector"
+      - policyDSL: assert predicate.attributes[attribute==WITH_STACK_PROTECTION].conditions.flags == "-fstack-protector"
     pubkeys: [builder1, builder2]
   - name: package
     command: make package
     predicates:
       - link
     expectedMaterials:
-      - MATCH bin/foo WITH products FROM build # here, we know build is slsa-provenance and to use its subject
+      - artifact: MATCH bin/foo WITH products FROM build # here, we know build is slsa-provenance and to use its subject
     expectedOutcomes:
-      - CREATE dist/foo.tar.gz
+      - artifact: CREATE dist/foo.tar.gz
     pubkeys: [builder1, builder2]
   - name: generate-sbom
     command: make sbom
@@ -82,6 +80,6 @@ inspections:
   - name: inspect-binary
     command: tar xf foo.tar.gz
     expectedMaterials:
-      - MATCH foo.tar.gz WITH products IN dist FROM package
+      - artifact: MATCH foo.tar.gz WITH products IN dist FROM package
     expectedOutcomes:
-      - MATCH foo WITH products IN bin FROM build
+      - artifact: MATCH foo WITH products IN bin FROM build
