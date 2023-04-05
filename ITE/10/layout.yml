@@ -2,10 +2,11 @@ signer:
   - "kms:key1"
   - "kms:key2"
 keys:
-  - "kms:alice"
-  - "kms:bob"
-  - "kms:builder1"
-  - "kms:builder2"
+  - "kms:engineering/alice"
+  - "kms:engineering/bob"
+  - "kms:automation/builder1"
+  - "kms:automation/builder2"
+  - "kms:qa/carol"
 steps:
   - name: checkout
     command: git clone URL foo
@@ -41,7 +42,7 @@ steps:
           - artifact: MATCH foo/* WITH products FROM checkout
         expectedOutcomes:
           - artifact: CREATE bin/foo
-          - policyDSL: assert predicate.invocation.configSource.digest == attestations[checkout].products["Makefile"].digest
+          - policyDSL: assert predicate.invocation.configSource.digest == attestations[checkout][predicateType==link].products["Makefile"].digest
       - predicates:
           - runtime-trace
         expectedMaterials:
@@ -76,6 +77,15 @@ steps:
       - spdx
       - cyclonedx
     pubkeys: [builder1, builder2]
+  - name: quality-assurance
+    predicates:
+      - layout # sublayout declaration
+    expectedMaterials:
+      - artifact: MATCH * WITH products IN dist FROM package
+    expectedOutcomes:
+      - policyDSL: assert attestations[quality-assurance][predicateType==qa-review] # assert the bundle returned for this sublayout contains an entry with the required predicateType
+      - policyDSL: assert attestations[quality-assurance][predicateType==legal-review]
+    pubkeys: [carol]
 inspections:
   - name: inspect-binary
     command: tar xf foo.tar.gz
