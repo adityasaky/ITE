@@ -1,0 +1,96 @@
+signer:
+  - "kms:owner1"
+  - "kms:owner2"
+  - "kms:owner3"
+functionaries: # this is an abstraction, each entry will indicate type of key / kms etc.
+  - "kms:engineering/alice"
+  - "kms:engineering/bob"
+  - "kms:automation/builder1"
+  - "kms:automation/builder2"
+  - "kms:automation/tracer"
+  - "kms:qa/carol"
+steps:
+  - name: checkout
+    command: git clone URL foo
+    predicates:
+      - type: [link] # note: this should be predicateType, i.e., URIs that include version info
+        expectedOutcomes:
+          - CREATE foo/* # recorded with gitCommit for the repository as a whole
+    functionaries: [alice]
+  - name: code-review
+    predicates: # does this list indicate or?
+      - type: [vcs-review, human-review]
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout # code review should be for the same gitCommit as before
+        expectedOutcomes:
+          - policyDSL: assert predicate.result == true # this is just to sketch out an idea
+    functionaries: [alice, bob]
+  - name: test
+    command: make test
+    predicates:
+      - type: [test-run]
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout
+        expectedOutcomes:
+          - policyDSL: assert len(predicate.testRun.failedTests) == 0 # we're okay with tests with warnings in this case, which is why we're not using predicate.Result
+    functionaries: [builder1, builder2]
+  - name: build
+    command: make
+    predicates: # since this has multiple predicates, the products are the set of everything recorded in each predicate
+      - type: [slsa-provenance]
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout
+        expectedOutcomes:
+          - artifact: CREATE bin/foo
+          - policyDSL: assert predicate.invocation.configSource.digest == attestations[checkout][predicateType==link].products["Makefile"].digest
+        functionaries: [builder1, builder2] # this can be per step or more granular when a step has multiple predicates
+        threshold: 2 # reproducible builds
+      - type: [runtime-trace]
+        expectedMaterials:
+          - artifact: MATCH foo/* WITH products FROM checkout # must each predicate record the same materials? perhaps expectedMaterials belongs alongside predicates, for the step as a whole, and its rules are applied to each predicate
+        expectedOutcomes:
+          - artifact: CREATE bin/foo
+          - policyDSL: assert predicate.monitor.tracePolicy.network == true # monitor was looking for network calls
+          - policyDSL: assert len(predicate.monitorLog.network) == 0 # hermetic build
+        functionaries: [tracer]
+  - name: record-attributes
+    command: make scai-report
+    predicates:
+      - type: [scai]
+        expectedMaterials:
+          - artifact: MATCH bin/foo WITH products FROM build
+        expectedOutcomes:
+          - policyDSL: assert predicate.attributes[attribute==WITH_STACK_PROTECTION].conditions.flags == "-fstack-protector"
+    functionaries: [builder1, builder2]
+  - name: package
+    command: make package
+    predicates:
+      - type: [link]
+        expectedMaterials:
+          - artifact: MATCH bin/foo WITH products FROM build # here, we know build is slsa-provenance and to use its subject
+        expectedOutcomes:
+          - artifact: CREATE dist/foo.tar.gz
+    functionaries: [builder1, builder2]
+  - name: generate-sbom
+    command: make sbom
+    predicates:
+      - type: [spdx, cyclonedx]
+        expectedMaterials:
+          - artifact: MATCH bin.foo WITH products FROM build
+    functionaries: [builder1, builder2]
+  - name: quality-assurance
+    predicates:
+      - type: [layout] # sublayout declaration, can it include an alternative predicate type for overrides?
+        expectedMaterials:
+          - artifact: MATCH * WITH products IN dist FROM package
+        expectedOutcomes:
+          - policyDSL: assert attestations[quality-assurance][predicateType==qa-review] # assert the bundle returned for this sublayout contains an entry with the required predicateType
+          - policyDSL: assert attestations[quality-assurance][predicateType==legal-review]
+    functionaries: [carol]
+inspections:
+  - name: inspect-binary
+    command: tar xf foo.tar.gz
+    expectedMaterials:
+      - artifact: MATCH foo.tar.gz WITH products IN dist FROM package
+    expectedOutcomes:
+      - artifact: MATCH foo WITH products IN bin FROM build
