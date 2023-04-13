@@ -126,16 +126,20 @@ functionaries: list of strings
 threshold: int
 ```
 
-Each entry in `expectedMaterials`, `expectedProducts`, and `expectedAttributes` corresponds to one
-rule, similar to the current in-toto layouts. However, along with in-toto
-artifact rules, other DSLs may be used to specify attribute specific
-constraints. Languages such as rego, CUE, and CEL have been designed to enable
-such schema and data validation. For more, see Appendix.
+Each entry in `expectedMaterials`, `expectedProducts`, and `expectedAttributes`
+corresponds to one rule, similar to the current in-toto layouts. However, along
+with in-toto artifact rules, other DSLs may be used to specify attribute
+specific constraints. Languages such as Rego, CUE, and CEL have been designed to
+enable such schema and data validation. Each constraint must identify the DSL
+used to ensure the verification engine can appropriately handle the rules. In
+some cases, the actual rules may need to be encoded in some form prior to
+embedding in the layout. The verification engine uses the information about the
+language to identify how to parse the rule.
 
-TODO: Appendix
-
-Each constraint must identify the DSL used to ensure the verification engine can
-appropriately handle the rules.
+```yaml
+language: string
+rule: object
+```
 
 === Verification Workflow
 
@@ -205,40 +209,26 @@ directly reason about the sources of claims made in them.
 [[reasoning]]
 == Reasoning
 
+This ITE presents certain changes that necessitate further reasoning.
+
+=== Predicate Classification
+
+One of in-toto's key properties is the ability to chain different steps
+together, and therefore verifying every step used the right artifacts. By
+classifying predicates based on the type of step they represent, we gain the
+ability to place attestations that exclusively contain claims about artifacts in
+the steps graph.
+
+=== New Policy Languages
+
 The intent of ITE-6 and the in-toto Attestation framework is to enable software
 producers to emit a wide range of contextual information pertaining to their
 supply chain. The intent of this ITE is to extend ITE-6 with policy definitions
 such that attestation producers can validate the information in ITE-6
 attestations. It is clear from ITE-6 that there is not a one-size-fits-all
 solution to policy definitions. Therefore, to support a wide variety of use
-cases, this ITE proposes the use of existing policy languages such as Rego and
-CUE.
-
-=== Rego
-
-Rego is a declarative policy language that is part of Open Policy Agent (OPA).
-Rego policies are composed of assertion queries that are applied against some
-specified data. If the data does not meet every assertion specified for it, the
-policy fails.
-
-Within the context of in-toto attestations, Rego can be used to define a set of
-rules for the data contained within predicates. If every assertion passes for
-some presented attestation, the in-toto verification workflow considers the
-property corresponding to the policy as met.
-
-The use of Rego over in-toto attestations is not new. Witness, an in-toto
-implementation by TestifySec supports the use of Rego policies.
-
-=== CUE
-
-CUE is a data validation language that can be used to validate data and schemas.
-It can be used to define constraints for some input data, and validation fails
-if the input data does not meet the specified constraints. As with Rego, CUE can
-be used to define rules for the data contained within in-toto predicates. During
-verification, if some attestation is presented that does not meet all the
-specified constraints, verification is unsuccessful. On the other hand, if all
-the constraints specified for a property's policy are met by the attestation,
-verification of that property is successful.
+cases, this ITE proposes the use of existing policy languages such as Rego, CUE,
+and CEL.
 
 [[backwards-compatibility]]
 == Backwards Compatibility
@@ -272,3 +262,4 @@ None yet.
 
 * link:https://www.openpolicyagent.org/docs/latest/policy-language/[Rego: Open Policy Agent's Policy Language]
 * link:https://cuelang.org/docs/about/[CUE]
+* link:https://github.com/google/cel-spec[CEL]
