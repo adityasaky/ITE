@@ -120,12 +120,13 @@ name: string
 command: string
 predicates: list of TypeURIs
 expectedMaterials: list of constraints
-expectedProducts: list of constraints # TODO: outcomes or products?
+expectedProducts: list of constraints
+expectedAttributes: list of constraints
 functionaries: list of strings
 threshold: int
 ```
 
-Each entry in `expectedMaterials` and `expectedProducts` corresponds to one
+Each entry in `expectedMaterials`, `expectedProducts`, and `expectedAttributes` corresponds to one
 rule, similar to the current in-toto layouts. However, along with in-toto
 artifact rules, other DSLs may be used to specify attribute specific
 constraints. Languages such as rego, CUE, and CEL have been designed to enable
@@ -155,14 +156,38 @@ proceeds to the product policies.
 
 === Role of Inspections
 
-Inspections largely function like they do in the current in-toto specification.
+Inspections are primarily used at verification time to examine the final 
+products and their in-toto metadata. They may be of two types. In the first,
+inspections largely function like they do in the current in-toto specification.
 They are used as a mechanism to execute custom checks during the verification
 workflow. Their materials and products fields are similarly enhanced with
 support for policy languages alongside in-toto artifact rules. By default,
 inspections are expected to generate in-toto links. However, the inspection
 declaration may specify an alternative predicate the check may result in.
 
-TODO: should inspections allow for assertions on specific subjects?
+```yaml
+name: string
+command: string
+predicates: list of TypeURIs
+expectedMaterials: list of constraints
+expectedProducts: list of constraints
+expectedAttributes: list of constraints
+```
+
+The second type of inspections do not execute a command or script to perform
+some check. Instead, they are used to apply constraints on the _subjects_ of
+in-toto attestations for a supply chain. Instead of `command`, the schema has a
+`subject` field that accepts one or more patterns. The claims from all
+attestations part of the verification whose subjects match the specified
+patterns are collated. The inspection's constraints are then applied to the
+claims pertaining to the subjects.
+
+```yaml
+name: string
+subject: list of patterns
+predicates: list of TypeURIs
+expectedAttributes: list of constraints
+```
 
 [[motivation]]
 == Motivation
