@@ -1,0 +1,124 @@
+= ITE-l2: Supporting Live Attestations
+:source-highlighter: pygments
+:toc: preamble
+:toclevels: 2
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+.Metadata
+[cols="2"]
+|===
+| ITE
+| 12
+
+| Title
+| Supporting Live Attestations
+
+| Sponsor
+| link:https://github.com/adityasaky[Aditya Sirish A Yelgundhalli]
+
+| Status
+| Draft
+
+| Type
+| Standards
+
+| Created
+| 2023-06-02
+
+|===
+
+
+[[abstract]]
+== Abstract
+
+Originally, claims expressed as in-toto metadata (links) were not expected to
+expire. This is because they were intrinsically tied to the artifact produced
+by that particular execution of the supply chain. With ITE-6 and the in-toto
+Attestation Framework, we can now express claims about supply chain steps and
+artifacts that can expire. This ITE explores how to handle such "live"
+attestations.
+
+[[specification]]
+== Specification
+
+First, it is necessary to establish how to identify when an attestation is
+created. Broadly speaking, there are two instants we can use: when the
+Statement is first created, and when the Statement is signed. As an in-toto
+attestation can only be used after it is authenticated using its signature,
+this ITE uses the time of signing as the time of issuance of the attestation.
+In practical terms, the delta between creating the Statement and signing it
+should be small enough to be irrelevant.
+
+Having established that the time of signature creation is to be used, it is
+then necessary to verifiably obtain that timestamp. This ITE proposes using
+RFC-3161 semantics, i.e. a timestamp authority, to prove that the signature in
+question existed at the time stated and attached to the signature object (side
+note: the signing envelope must support embedding TSA information for this
+ITE).
+
+Secondly, this ITE proposes that an in-toto layout can optionally specify a
+relative time period that establishes the validity period for the attestation.
+For example, if the layout indicates the attestation must have been created in
+the last 14 days, the validity period is from the verification time (i.e.
+"now", this can be the same as the time used for the layout expiry check) to
+exactly 14 days prior. If the timestamp attached to the signature does not fall
+within that period, the attestation is rejected.
+
+TODO: rekor should work fine here. Does it fit the description of a TSA?
+
+[[motivation]]
+== Motivation
+
+A "live" attestation is one whose validity is dependent on when the attestation
+was generated. A policy such as an in-toto layout must be capable of rejecting
+a live attestation that is older than permissible. For example, a vulnerability
+scan result generated 2 weeks prior to verification must not be acceptable if
+the policy requires vulnerability scan results to be no more than a week old.
+
+[[reasoning]]
+== Reasoning
+
+Here, describe why the decisions you made in the specification make sense.
+
+[[backwards-compatibility]]
+== Backwards Compatibility
+
+Describe how these changes will affect backwards compatibility and how you plan
+on mitigating the effects of these.
+
+[[security]]
+== Security
+
+Provide a security analysis of these changes including the threat model
+considered (and how it differs from the existing threat model for in-toto).
+Mention the security impact of adding these changes to in-toto.
+
+[[infrastructure-requirements]]
+== Infrastructure Requirements
+
+If your changes require additional infrastructure, describe it here. Include
+potential costs incurred considering both time and money.
+
+[[testing]]
+== Testing
+
+If your implementation includes code, include this section describing how your
+changes will be tested.
+
+[[prototype-implementation]]
+== Prototype Implementation
+
+If your ITE includes code changes, provide some links to the prototype
+implementation of these changes.
+
+[[references]]
+== References
+
+
+* link:http://www.ietf.org/rfc.html[IETF RFC]
